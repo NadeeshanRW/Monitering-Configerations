@@ -1,0 +1,390 @@
+{
+  "kind": "Panel",
+  "spec": {
+    "id": 4,
+    "title": "VM Resource Utilization",
+    "description": "",
+    "links": [],
+    "transparent": true,
+    "data": {
+      "kind": "QueryGroup",
+      "spec": {
+        "queries": [
+          {
+            "kind": "PanelQuery",
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "version": "v0",
+                "group": "prometheus",
+                "datasource": {
+                  "name": "cfywtrivkf0g0f"
+                },
+                "spec": {
+                  "editorMode": "code",
+                  "expr": "sum by (instance) (up{platform=~\"vm|cloud_vm\"})",
+                  "format": "table",
+                  "instant": true,
+                  "legendFormat": "__auto",
+                  "range": false
+                }
+              },
+              "refId": "Status",
+              "hidden": false
+            }
+          },
+          {
+            "kind": "PanelQuery",
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "version": "v0",
+                "group": "prometheus",
+                "datasource": {
+                  "name": "cfywtrivkf0g0f"
+                },
+                "spec": {
+                  "editorMode": "code",
+                  "expr": "((sum by(instance) (node_memory_MemTotal_bytes) - sum by(instance) (node_memory_MemAvailable_bytes)) / sum by(instance) (node_memory_MemTotal_bytes)) * 100",
+                  "format": "table",
+                  "instant": true,
+                  "legendFormat": "__auto",
+                  "range": false
+                }
+              },
+              "refId": "RAM Usage %",
+              "hidden": false
+            }
+          },
+          {
+            "kind": "PanelQuery",
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "version": "v0",
+                "group": "prometheus",
+                "datasource": {
+                  "name": "cfywtrivkf0g0f"
+                },
+                "spec": {
+                  "editorMode": "code",
+                  "expr": "(1 - avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))) * 100",
+                  "format": "table",
+                  "instant": true,
+                  "legendFormat": "__auto",
+                  "range": false
+                }
+              },
+              "refId": "CPU Load %",
+              "hidden": false
+            }
+          },
+          {
+            "kind": "PanelQuery",
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "version": "v0",
+                "group": "prometheus",
+                "datasource": {
+                  "name": "cfywtrivkf0g0f"
+                },
+                "spec": {
+                  "editorMode": "code",
+                  "expr": "((sum by(instance) (node_filesystem_size_bytes{mountpoint=\"/\"}) - sum by(instance) (node_filesystem_free_bytes{mountpoint=\"/\"})) / sum by(instance) (node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+                  "format": "table",
+                  "instant": true,
+                  "legendFormat": "__auto",
+                  "range": false
+                }
+              },
+              "refId": "Disk Usage %",
+              "hidden": false
+            }
+          },
+          {
+            "kind": "PanelQuery",
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "version": "v0",
+                "group": "prometheus",
+                "datasource": {
+                  "name": "cfywtrivkf0g0f"
+                },
+                "spec": {
+                  "editorMode": "code",
+                  "expr": "count by(instance) (node_cpu_seconds_total{mode=\"idle\"})",
+                  "format": "table",
+                  "instant": true,
+                  "legendFormat": "__auto",
+                  "range": false
+                }
+              },
+              "refId": "CPU Cores",
+              "hidden": false
+            }
+          }
+        ],
+        "transformations": [
+          {
+            "kind": "Transformation",
+            "group": "joinByField",
+            "spec": {
+              "options": {
+                "byField": "instance",
+                "mode": "outer"
+              }
+            }
+          },
+          {
+            "kind": "Transformation",
+            "group": "organize",
+            "spec": {
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "indexByName": {
+                  "Value #CPU Cores": 2,
+                  "Value #CPU Load %": 3,
+                  "Value #Disk Usage %": 5,
+                  "Value #RAM Usage %": 4,
+                  "Value #Status": 1,
+                  "instance": 0
+                },
+                "renameByName": {
+                  "Value #CPU Cores": "Cores",
+                  "Value #CPU Load %": "CPU Load",
+                  "Value #Disk Usage %": "Disk Usage",
+                  "Value #RAM Usage %": "RAM",
+                  "Value #Status": "Status",
+                  "instance": "Node"
+                }
+              }
+            }
+          }
+        ],
+        "queryOptions": {}
+      }
+    },
+    "vizConfig": {
+      "kind": "VizConfig",
+      "group": "table",
+      "version": "13.2.2",
+      "spec": {
+        "options": {
+          "showHeader": true,
+          "cellHeight": "sm",
+          "sortBy": [
+            {
+              "desc": false,
+              "displayName": "Status"
+            }
+          ]
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "footer": {
+                "reducers": []
+              },
+              "cellOptions": {
+                "type": "auto"
+              },
+              "inspect": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 70,
+                  "color": "yellow"
+                },
+                {
+                  "value": 85,
+                  "color": "red"
+                }
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "fieldMinMax": false
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Status"
+              },
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "mode": "basic",
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "red",
+                        "value": null
+                      },
+                      {
+                        "color": "green",
+                        "value": 1
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "0": {
+                          "color": "red",
+                          "text": "DOWN"
+                        },
+                        "1": {
+                          "color": "green",
+                          "text": "UP"
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                },
+                {
+                  "id": "unit",
+                  "value": "none"
+                },
+                {
+                  "id": "custom.width",
+                  "value": 78
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Cores"
+              },
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "mode": "basic",
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "semi-dark-blue",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "unit",
+                  "value": "none"
+                },
+                {
+                  "id": "custom.width",
+                  "value": 50
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "CPU Load"
+              },
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "mode": "lcd",
+                    "type": "gauge",
+                    "valueDisplay": "text",
+                    "valueDisplayMode": "color"
+                  }
+                },
+                {
+                  "id": "custom.width",
+                  "value": 166
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "RAM"
+              },
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "mode": "lcd",
+                    "type": "gauge",
+                    "valueDisplay": "text",
+                    "valueDisplayMode": "color"
+                  }
+                },
+                {
+                  "id": "custom.width",
+                  "value": 145
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Disk Usage"
+              },
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "mode": "lcd",
+                    "type": "gauge",
+                    "valueDisplay": "text",
+                    "valueDisplayMode": "color"
+                  }
+                },
+                {
+                  "id": "custom.width",
+                  "value": 187
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "scope": "series",
+                "options": "Node"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 137
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

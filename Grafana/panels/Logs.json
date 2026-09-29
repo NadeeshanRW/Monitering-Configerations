@@ -1,0 +1,85 @@
+{
+  "kind": "Panel",
+  "spec": {
+    "id": 2,
+    "title": "Logs",
+    "description": "",
+    "links": [],
+    "transparent": true,
+    "data": {
+      "kind": "QueryGroup",
+      "spec": {
+        "queries": [
+          {
+            "kind": "PanelQuery",
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "version": "v0",
+                "group": "loki",
+                "datasource": {
+                  "name": "afywt2p13yadce"
+                },
+                "spec": {
+                  "direction": "backward",
+                  "editorMode": "code",
+                  "expr": "{instance=~\"home_workstation|monitoring_server\"} | json | logfmt | regexp \"^(\\\\d{4}-\\\\d{2}-\\\\d{2}[\\\\sT]\\\\d{2}:\\\\d{2}:\\\\d{2}(?:[,\\\\.]\\\\d+)?(?:\\\\+\\\\d{4})?\\\\s*)?(?P<clean_log>.*)$\"\r\n| line_format \"{{ .clean_log }}\" | drop __error__, __error_details__",
+                  "legendFormat": "",
+                  "queryType": "range"
+                }
+              },
+              "refId": "A",
+              "hidden": false
+            }
+          }
+        ],
+        "transformations": [],
+        "queryOptions": {}
+      }
+    },
+    "vizConfig": {
+      "kind": "VizConfig",
+      "group": "logs",
+      "version": "13.2.2",
+      "spec": {
+        "options": {
+          "showTime": true,
+          "timestampResolution": "ms",
+          "showLevel": true,
+          "wrapLogMessage": false,
+          "unwrappedColumns": false,
+          "prettifyLogMessage": false,
+          "enableLogDetails": true,
+          "showFieldSelector": true,
+          "enableInfiniteScrolling": true,
+          "showControls": true,
+          "dedupStrategy": "none",
+          "sortOrder": "Descending",
+          "allowDownload": false,
+          "controlsStorageKey": "grafana.explore.logs",
+          "detailsMode": "inline",
+          "displayedFields": [],
+          "fontSize": "small",
+          "logLineMenuCustomItems": [
+            {
+              "label": "Copy link to log line"
+            }
+          ],
+          "logRowMenuIconsAfter": [
+            {
+              "key": "0",
+              "props": {}
+            }
+          ],
+          "showLabels": false,
+          "showLogContextToggle": true,
+          "syntaxHighlighting": true
+        },
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": []
+        }
+      }
+    }
+  }
+}
