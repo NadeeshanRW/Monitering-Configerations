@@ -1,0 +1,180 @@
+// =========================================================
+// GLOBAL CONFIG
+// =========================================================
+
+logging {
+  level = "info"
+}
+
+// =========================================================
+// 1. LINUX SYSTEM METRICS
+// =========================================================
+
+prometheus.exporter.unix "home_server" {
+  include_exporter_metrics = true
+  disable_collectors         = ["mdadm"]
+}
+
+prometheus.scrape "metrics_scrape" {
+  targets     = prometheus.exporter.unix.home_server.targets
+  forward_to  = [prometheus.relabel.home_server.receiver]
+  scrape_interval = "15s"
+}
+
+// Attach consistent labels to every metric using relabel
+prometheus.relabel "home_server" {
+  forward_to = [prometheus.remote_write.prom.receiver]
+
+  rule {
+    action       = "replace"
+    target_label = "job"
+    replacement  = "grafana_alloy"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "instance"
+    replacement  = "home_workstation"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "hostname"
+    replacement  = "nadiya"
+  }
+ 
+  rule {
+    action       = "replace"
+    target_label = "platform"
+    replacement  = "vm"
+  }
+}
+
+prometheus.remote_write "prom" {
+  endpoint {
+    url = "http://130.162.231.139:9090/api/v1/write"
+
+    queue_config {
+      max_samples_per_send = 1000
+      capacity             = 10000
+    }
+  }
+}
+
+
+// =========================================================
+// 2. DOCKER CONTAINER METRICS - cAdvisor
+// =========================================================
+
+prometheus.scrape "cadvisor" {
+  targets = [
+    {
+      "__address__" = "127.0.0.1:8081",
+    },
+  ]
+
+  scrape_interval = "15s"
+  forward_to = [prometheus.relabel.cadvisor.receiver]
+}
+
+prometheus.relabel "cadvisor" {
+  forward_to = [prometheus.remote_write.prom.receiver]
+
+  rule {
+    action       = "replace"
+    target_label = "job"
+    replacement  = "cadvisor"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "instance"
+    replacement  = "home_workstation"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "hostname"
+    replacement  = "nadiya"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "platform"
+    replacement  = "docker"
+  }
+}
+
+
+
+
+
+// =========================================================
+// 3. LINUX SYSTEM LOGS
+// =========================================================
+
+local.file_match "syslog" {
+  path_targets = [
+    {
+      "__path__" = "/var/log/syslog",
+      "job"      = "grafana_alloy",
+      "instance" = "home_workstation",
+      "hostname" = "nadiya",
+      "platform" = "vm",
+    },
+  ]
+}
+
+loki.source.file "syslog" {
+  targets    = local.file_match.syslog.targets
+  forward_to = [loki.write.loki_endpoint.receiver]
+}
+
+loki.write "loki_endpoint" {
+  endpoint {
+    url = "http://130.162.231.139:3100/loki/api/v1/push"
+  }
+}
+
+
+// =========================================================
+// 4. DOCKER CONTAINER LOGS
+// =========================================================
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    action       = "replace"
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "container"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "job"
+    replacement  = "docker"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "instance"
+    replacement  = "home_workstation"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "hostname"
+    replacement  = "nadiya"
+  }
+}
+
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_logs.output
+  forward_to = [loki.write.loki_endpoint.receiver]
+}
