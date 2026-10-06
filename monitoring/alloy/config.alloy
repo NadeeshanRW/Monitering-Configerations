@@ -1,0 +1,171 @@
+// ============================================================
+// MONITORING SERVER - HOST METRICS
+// ============================================================
+
+prometheus.exporter.unix "monitor_server" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/root"
+
+  include_exporter_metrics = false
+}
+
+// Collect host metrics every 15 seconds
+prometheus.scrape "monitor_server" {
+  targets = prometheus.exporter.unix.monitor_server.targets
+
+  scrape_interval = "15s"
+
+  forward_to = [
+    prometheus.relabel.monitor_server.receiver,
+  ]
+}
+
+// Add host identification labels
+prometheus.relabel "monitor_server" {
+
+  rule {
+    action       = "replace"
+    target_label = "job"
+    replacement  = "grafana_alloy"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "instance"
+    replacement  = "monitoring_server"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "hostname"
+    replacement  = "monitoring"
+  }
+
+  rule {
+    action       = "replace"
+    target_label = "platform"
+    replacement  = "cloud_vm"
+  }
+
+  forward_to = [
+    prometheus.remote_write.local.receiver,
+  ]
+}
+
+
+// ============================================================
+// DOCKER CONTAINER METRICS DISCOVERY
+// ============================================================
+
+discovery.docker "monitor_docker" {
+  host = "unix:///var/run/docker.sock"
+}
+
+
+// ============================================================
+// PROMETHEUS REMOTE WRITE
+// ============================================================
+
+prometheus.remote_write "local" {
+
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+
+// ============================================================
+// HOST SYSTEM LOGS
+// ============================================================
+
+local.file_match "monitor_server_logs" {
+
+  path_targets = [
+    {
+      "__path__" = "/var/log/*.log",
+      "job"      = "grafana_alloy",
+      "instance" = "monitoring_server",
+      "hostname" = "monitoring",
+      "platform" = "cloud_vm",
+    },
+    {
+      "__path__" = "/var/log/syslog",
+      "job"      = "grafana_alloy",
+      "instance" = "monitoring_server",
+      "hostname" = "monitoring",
+      "platform" = "cloud_vm",
+    },
+    {
+      "__path__" = "/var/log/auth.log",
+      "job"      = "grafana_alloy",
+      "instance" = "monitoring_server",
+      "hostname" = "monitoring",
+      "platform" = "cloud_vm",
+    },
+    {
+      "__path__" = "/var/log/kern.log",
+      "job"      = "grafana_alloy",
+      "instance" = "monitoring_server",
+      "hostname" = "monitoring",
+      "platform" = "cloud_vm",
+    },
+  ]
+}
+
+loki.source.file "monitor_server_logs" {
+
+  targets = local.file_match.monitor_server_logs.targets
+
+  forward_to = [
+    loki.write.local.receiver,
+  ]
+}
+
+
+// ============================================================
+// DOCKER CONTAINER LOGS
+// ============================================================
+
+discovery.relabel "monitor_docker_logs" {
+
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "monitor_docker" {
+
+  host = "unix:///var/run/docker.sock"
+
+  targets = discovery.docker.monitor_docker.targets
+
+  labels = {
+    "job"      = "grafana_alloy",
+    "instance" = "docker_monitoring",
+    "hostname" = "monitoring_server",
+    "platform" = "cloud_vm",
+  }
+
+  relabel_rules = discovery.relabel.monitor_docker_logs.rules
+
+  forward_to = [
+    loki.write.local.receiver,
+  ]
+}
+
+
+// ============================================================
+// LOKI REMOTE WRITE
+// ============================================================
+
+loki.write "local" {
+
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
